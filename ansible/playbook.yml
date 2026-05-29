@@ -1,0 +1,51 @@
+---
+- hosts: local
+  become: yes
+
+  vars:
+    acr_registry: "amineacr.azurecr.io"
+    image_name: "langchain-multiagent:latest"
+
+  tasks:
+
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Docker login to ACR
+      shell: |
+        source .env
+        docker login {{ acr_registry }} \
+        -u $ACR_USERNAME \
+        -p $ACR_PASSWORD
+      args:
+        executable: /bin/bash
+
+    - name: Pull Docker image from ACR
+      command: >
+        docker pull {{ acr_registry }}/{{ image_name }}
+
+    - name: Remove old container if exists
+      ignore_errors: yes
+      command: docker rm -f langchain-api
+
+    - name: Run FastAPI container
+      shell: |
+        docker run -d \
+          --name langchain-api \
+          -p 8000:8000 \
+          --env-file .env \
+          {{ acr_registry }}/{{ image_name }}
+      args:
+        executable: /bin/bash

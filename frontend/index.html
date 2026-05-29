@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Multi-Agent Research Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+    <div class="ambient-orbs" aria-hidden="true">
+        <div class="orb orb--1"></div>
+        <div class="orb orb--2"></div>
+        <div class="orb orb--3"></div>
+    </div>
+    <div class="background-grid" aria-hidden="true"></div>
+    <main class="app-shell">
+        <section class="workspace">
+            <header class="topbar fade-in-up">
+                <div class="brand-lockup">
+                    <span class="brand-mark" aria-hidden="true">LC</span>
+                    <div>
+                        <p class="eyebrow">LangChain Multi-Agent</p>
+                        <h1>Research Console</h1>
+                    </div>
+                </div>
+                <div class="system-badge" aria-label="API status">
+                    <span class="signal-dot" aria-hidden="true"></span>
+                    <span class="signal-dot-glow" aria-hidden="true"></span>
+                    API online
+                </div>
+            </header>
+
+            <section class="control-deck fade-in-up stagger-1">
+                <form class="query-panel" id="research-form">
+                    <div class="panel-head">
+                        <label for="topic">Research topic</label>
+                        <span id="topic-counter">0 / 300</span>
+                    </div>
+                    <div class="query-row">
+                        <textarea
+                            id="topic"
+                            name="topic"
+                            minlength="3"
+                            maxlength="300"
+                            rows="3"
+                            required
+                            placeholder="The impact of AI on the job market in 2026"
+                        ></textarea>
+                        <button type="submit" id="run-button">
+                            <span class="button-shine" aria-hidden="true"></span>
+                            <span class="button-label">Run pipeline</span>
+                            <span class="button-loader" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    <div class="status-line" id="status-line" role="status" aria-live="polite">
+                        Ready
+                    </div>
+                </form>
+
+                <aside class="pipeline-panel" aria-label="Pipeline stages">
+                    <div class="panel-head">
+                        <span>Pipeline</span>
+                        <span>4 agents</span>
+                    </div>
+                    <ol class="pipeline-steps">
+                        <li class="pipeline-step" data-step="1">
+                            <span class="step-index">01</span>
+                            <span>Search</span>
+                        </li>
+                        <li class="pipeline-step" data-step="2">
+                            <span class="step-index">02</span>
+                            <span>Scrape</span>
+                        </li>
+                        <li class="pipeline-step" data-step="3">
+                            <span class="step-index">03</span>
+                            <span>Write</span>
+                        </li>
+                        <li class="pipeline-step" data-step="4">
+                            <span class="step-index">04</span>
+                            <span>Critic</span>
+                        </li>
+                    </ol>
+                </aside>
+            </section>
+
+            <section class="summary-grid" aria-label="Run summary">
+                <article class="summary-card fade-in-up stagger-2">
+                    <span class="summary-label">Topic</span>
+                    <strong id="summary-topic">No run yet</strong>
+                </article>
+                <article class="summary-card fade-in-up stagger-3">
+                    <span class="summary-label">Report</span>
+                    <strong id="summary-report">0 chars</strong>
+                </article>
+                <article class="summary-card fade-in-up stagger-4">
+                    <span class="summary-label">Sources</span>
+                    <strong id="summary-sources">0 URLs</strong>
+                </article>
+                <article class="summary-card fade-in-up stagger-5">
+                    <span class="summary-label">Critic</span>
+                    <strong id="summary-score">Pending</strong>
+                </article>
+            </section>
+
+            <section class="output-grid">
+                <article class="output-card output-card-large fade-in-up stagger-3">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-kicker">Generated artifact</span>
+                            <h2>Report</h2>
+                        </div>
+                        <button class="ghost-button" type="button" data-copy-target="report-output">Copy</button>
+                    </div>
+                    <pre id="report-output" class="output-block empty">Run the pipeline to see the generated report.</pre>
+                </article>
+
+                <article class="output-card fade-in-up stagger-4">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-kicker">Review layer</span>
+                            <h2>Critic Feedback</h2>
+                        </div>
+                        <button class="ghost-button" type="button" data-copy-target="feedback-output">Copy</button>
+                    </div>
+                    <pre id="feedback-output" class="output-block empty">Critic feedback will appear here.</pre>
+                </article>
+
+                <article class="output-card fade-in-up stagger-5">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-kicker">Source discovery</span>
+                            <h2>Search Results</h2>
+                        </div>
+                        <button class="ghost-button" type="button" data-copy-target="search-output">Copy</button>
+                    </div>
+                    <pre id="search-output" class="output-block empty">Search agent output will appear here.</pre>
+                </article>
+
+                <article class="output-card output-card-wide fade-in-up stagger-5">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-kicker">Reader extract</span>
+                            <h2>Scraped Preview</h2>
+                        </div>
+                        <button class="ghost-button" type="button" data-copy-target="scrape-output">Copy</button>
+                    </div>
+                    <pre id="scrape-output" class="output-block empty">Scraped content preview will appear here.</pre>
+                </article>
+            </section>
+        </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+</body>
+</html>
