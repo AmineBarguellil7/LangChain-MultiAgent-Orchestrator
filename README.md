@@ -1,29 +1,45 @@
 # LangChain Multi-Agent Orchestrator
 
-This project turns a local LangChain multi-agent research pipeline into a deployable FastAPI application. The app accepts a research topic, searches the web with Tavily, scrapes a useful source, generates a structured report with Groq, and returns critic feedback through an API and a small browser UI.
+> *A production-ready AI research pipeline deployed on Azure — from local script to cloud-hosted API.*
+
+---
 
 ## Project Overview
 
+> *Four-stage deployment journey: API layer → Docker container → Azure VM → Ansible automation.*
+
+This project turns a local LangChain multi-agent research pipeline into a deployable FastAPI application. The app accepts a research topic, searches the web with Tavily, scrapes a useful source, generates a structured report with Groq, and returns critic feedback through an API and a small browser UI.
+
 The deployment journey followed four main steps:
 
-1. FastAPI API layer: convert the local AI pipeline into a deployable web API.
-2. Dockerize the app: package the API, frontend, and dependencies into a container.
-3. Azure VM with Terraform: provision cloud infrastructure as code.
-4. Deploy with Ansible: automate server setup and container deployment.
+1. **FastAPI API layer** — *Convert the local AI pipeline into a deployable web API.*
+2. **Dockerize the app** — *Package the API, frontend, and dependencies into a portable container.*
+3. **Azure VM with Terraform** — *Provision repeatable, version-controlled cloud infrastructure.*
+4. **Deploy with Ansible** — *Automate server setup and container deployment end-to-end.*
 
-## Step 1 - FastAPI API Layer
+---
+
+## Step 1 — FastAPI API Layer
+
+> *Wraps the local multi-agent pipeline in a web service accessible via HTTP.*
 
 The first step was to wrap the local AI pipeline in a FastAPI application so it could run as a web service instead of only as a local script.
 
 The FastAPI layer is defined in `app.py` and connects to the pipeline in `src/pipelines/pipeline.py`.
 
-Main API routes:
+### Main API Routes
 
-- `GET /` serves the browser UI from `frontend/index.html`.
-- `GET /health` checks that the API is running.
-- `POST /research` runs the multi-agent research pipeline for a submitted topic.
+> *Three endpoints: UI serving, health monitoring, and the core research pipeline.*
 
-The `POST /research` endpoint accepts a JSON body like this:
+- `GET /` — *Serves the browser UI from `frontend/index.html`.*
+- `GET /health` — *Checks that the API is running.*
+- `POST /research` — *Runs the multi-agent research pipeline for a submitted topic.*
+
+### Request Format
+
+> *Send a JSON body with the research topic string.*
+
+The `POST /research` endpoint accepts:
 
 ```json
 {
@@ -31,7 +47,9 @@ The `POST /research` endpoint accepts a JSON body like this:
 }
 ```
 
-It returns:
+### Response Fields
+
+> *Five fields returned: topic, search results, scraped preview, report, and critic feedback.*
 
 - the submitted topic
 - Tavily search results
@@ -39,7 +57,9 @@ It returns:
 - the generated research report
 - critic feedback on the report
 
-Run locally:
+### Run Locally
+
+> *Install dependencies and start the development server with hot-reload.*
 
 ```powershell
 pip install -r requirements.txt
@@ -52,11 +72,33 @@ Open the app at:
 http://127.0.0.1:8000
 ```
 
-## Step 2 - Dockerize the App
+### Browser UI — Research Console
+
+> *The frontend shows the pipeline status, generated report, critic score, search results, and scraped preview.*
+
+![Research Console Overview](images/app-ui-overview.png)
+*Research Console — full pipeline view with topic input, 4-agent pipeline, and result stats.*
+
+![Mobile View](images/app-mobile.png)
+*Mobile-responsive view of the Research Console running on the deployed Azure VM.*
+
+![Report and Critic Feedback](images/app-report-critic.png)
+*Generated artifact (report) alongside the critic's structured feedback with score and improvement areas.*
+
+![Search Results and Scraped Preview](images/app-search-scraped.png)
+*Source discovery section showing Tavily search results and the scraped page preview.*
+
+---
+
+## Step 2 — Dockerize the App
+
+> *Packages the application into a container for consistent, portable deployment.*
 
 The second step was to containerize the FastAPI application with Docker so it can run consistently on any machine or server.
 
-The `Dockerfile` does the following:
+### What the Dockerfile Does
+
+> *Minimal Python 3.11 image, dependency install, file copy, port exposure, and Uvicorn startup.*
 
 - uses `python:3.11-slim` as the base image
 - sets `/app` as the working directory
@@ -66,38 +108,44 @@ The `Dockerfile` does the following:
 - exposes port `8000`
 - starts the API with Uvicorn
 
-Build the image:
+### Build and Run
+
+> *Build the image once, run it anywhere using environment variables from `.env`.*
 
 ```powershell
 docker build -t langchain-multiagent-orchestrator .
 ```
 
-Run the container:
-
 ```powershell
 docker run --env-file .env -p 8000:8000 langchain-multiagent-orchestrator
 ```
-
-The container runs the FastAPI server on:
 
 ```text
 http://localhost:8000
 ```
 
-Required environment variables:
+### Required Environment Variables
+
+> *Two API keys needed: one for Tavily web search, one for Groq LLM inference.*
 
 ```text
 TAVILY_API_KEY=your_tavily_key
 GROQ_API_KEY=your_groq_key
 ```
 
-## Step 3 - Azure VM with Terraform
+---
+
+## Step 3 — Azure VM with Terraform
+
+> *Provisions all cloud infrastructure as code — repeatable and version-controlled.*
 
 The third step was to create the cloud infrastructure using Terraform, so the server setup is repeatable and version-controlled.
 
 The Terraform configuration is stored in the `terraform/` directory.
 
-It provisions:
+### What Terraform Provisions
+
+> *A complete Azure networking and compute stack, locked down with SSH and API port rules.*
 
 - an Azure resource group
 - a virtual network
@@ -109,7 +157,23 @@ It provisions:
 - a network interface
 - an Ubuntu 22.04 Linux virtual machine
 
-Run Terraform:
+### Azure Resource Group
+
+> *The `ai-research-rg` resource group contains all 7 provisioned resources in Spain Central.*
+
+![Azure Resource Group](images/azure-resource-group.png)
+*Resource group overview — NIC, NSG, public IP, VM, disk, VNet, and Container Registry all provisioned together.*
+
+### Azure Virtual Machine
+
+> *A Standard_D2s_v3 Ubuntu Linux VM running in Spain Central with a static public IP.*
+
+![Azure VM List](images/azure-vm-list.png)
+*Virtual machines view — `ai-vm` is running with public IP `158.158.45.240`.*
+
+### Run Terraform
+
+> *Initialize providers, preview the plan, then apply to create the infrastructure.*
 
 ```powershell
 cd terraform
@@ -118,33 +182,46 @@ terraform plan
 terraform apply
 ```
 
-After the VM is created, get the public IP:
+### Get the Public IP
+
+> *The output IP is used for SSH access, Ansible inventory, and API access.*
 
 ```powershell
 terraform output public_ip
 ```
 
-That public IP is used for SSH, Ansible inventory, and accessing the deployed API.
+---
 
-## Step 4 - Deploy with Ansible
+## Step 4 — Deploy with Ansible
+
+> *Automates every server setup task and container deployment in a single playbook run.*
 
 The final step was to use Ansible to automate the server setup and deploy the Dockerized app.
 
 The Ansible files are stored in the `ansible/` directory:
 
-- `ansible/inventory.ini` defines the target host group.
-- `ansible/playbook.yml` contains the deployment tasks.
+- `ansible/inventory.ini` — *Defines the target host group.*
+- `ansible/playbook.yml` — *Contains all deployment tasks.*
 
-The current inventory uses a local connection:
+### Azure Container Registry
+
+> *The Docker image is pushed to Azure Container Registry (`amineacr`) and pulled by Ansible at deploy time.*
+
+![ACR Repository](images/azure-acr-repo.png)
+*Container registry `amineacr` with the `langchain-multiagent` repository — tagged `latest`, last updated 5/28/2026.*
+
+### Inventory Configuration
+
+> *Currently configured for local execution; swap `localhost` for your VM IP for remote deployment.*
 
 ```ini
 [local]
 localhost ansible_connection=local
 ```
 
-This means the playbook runs on the machine where Ansible is executed. In this setup, it is used to prepare the Linux environment, authenticate with Azure Container Registry, pull the Docker image, and run the FastAPI container.
+### What Ansible Automates
 
-Ansible was used to handle the repeatable server tasks:
+> *Full server lifecycle: Docker install → ACR login → image pull → container replacement → run.*
 
 - update apt packages
 - install Docker
@@ -154,14 +231,18 @@ Ansible was used to handle the repeatable server tasks:
 - remove the old `langchain-api` container if it already exists
 - run the FastAPI container on port `8000`
 
-The playbook uses these values:
+### Playbook Variables
+
+> *ACR registry URL and image name used across all deployment tasks.*
 
 ```yaml
 acr_registry: "amineacr.azurecr.io"
 image_name: "langchain-multiagent:latest"
 ```
 
-Required `.env` values for deployment:
+### Required `.env` Values for Deployment
+
+> *Four secrets required: ACR credentials for image pull, API keys for runtime.*
 
 ```text
 ACR_USERNAME=your_acr_username
@@ -170,25 +251,31 @@ TAVILY_API_KEY=your_tavily_key
 GROQ_API_KEY=your_groq_key
 ```
 
-Run the playbook from the project root so the `.env` file is available:
+### Run the Playbook
+
+> *Run from the project root so the `.env` file is available to the playbook.*
 
 ```powershell
 ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
 ```
 
-After deployment, the app is available at:
+### Access the Deployed App
+
+> *Replace `<azure-vm-public-ip>` with the IP from `terraform output public_ip`.*
 
 ```text
 http://<azure-vm-public-ip>:8000
 ```
 
-Health check:
-
 ```text
 http://<azure-vm-public-ip>:8000/health
 ```
 
+---
+
 ## End-to-End Flow
+
+> *User input flows through four agents: search → scrape → write → critique.*
 
 ```text
 User Topic
@@ -201,41 +288,58 @@ User Topic
   -> API returns report and feedback
 ```
 
+---
+
 ## Tech Stack
 
-- Python
-- FastAPI
-- LangChain
-- Groq
-- Tavily
-- BeautifulSoup
-- Trafilatura
-- Docker
-- Terraform
-- Azure VM
-- Ansible
+> *Python-based AI pipeline served via FastAPI, containerized with Docker, and deployed on Azure using IaC tools.*
+
+| Layer | Technology |
+|---|---|
+| Language | Python |
+| API Framework | FastAPI |
+| AI Orchestration | LangChain |
+| LLM Inference | Groq |
+| Web Search | Tavily |
+| HTML Parsing | BeautifulSoup, Trafilatura |
+| Containerization | Docker |
+| Infrastructure | Terraform |
+| Cloud Compute | Azure VM |
+| Deployment Automation | Ansible |
+
+---
 
 ## Useful Commands
 
-Local API:
+> *Quick reference for local dev, Docker, Terraform, and Ansible workflows.*
+
+### Local API
+
+> *Starts the FastAPI server with auto-reload on code changes.*
 
 ```powershell
 uvicorn app:app --reload
 ```
 
-Docker build:
+### Docker Build
+
+> *Builds the container image with all dependencies baked in.*
 
 ```powershell
 docker build -t langchain-multiagent-orchestrator .
 ```
 
-Docker run:
+### Docker Run
+
+> *Runs the container with environment variables injected from `.env`.*
 
 ```powershell
 docker run --env-file .env -p 8000:8000 langchain-multiagent-orchestrator
 ```
 
-Terraform deploy:
+### Terraform Deploy
+
+> *Initializes and applies the full Azure infrastructure stack.*
 
 ```powershell
 cd terraform
@@ -243,7 +347,9 @@ terraform init
 terraform apply
 ```
 
-Ansible deploy:
+### Ansible Deploy
+
+> *Runs the full deployment playbook against the configured inventory.*
 
 ```powershell
 ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
